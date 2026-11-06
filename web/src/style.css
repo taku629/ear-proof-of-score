@@ -168,6 +168,28 @@ h1 em, .create-intro h2 em, .how-heading h2 em { color: var(--lime); font-style:
 .toast.visible { opacity: 1; transform: translateY(0); }
 .toast.error { color: #fff1e7; background: #9b4f36; }
 .hidden { display: none!important; }
+.empty-practice-link { display: block; width: fit-content; margin: 18px auto 0; color: var(--lime); font: 9px var(--mono); text-decoration: underline; text-underline-offset: 4px; }
+.practice-section { background: radial-gradient(ellipse at 86% 35%, rgba(116,231,193,.04), transparent 42%); }
+.practice-badge { padding: 8px 10px; border: 1px solid rgba(116,231,193,.25); color: var(--mint); font: 8px var(--mono); letter-spacing: .08em; white-space: nowrap; }
+.practice-layout { display: grid; grid-template-columns: minmax(220px, .7fr) minmax(0, 1.3fr); gap: 28px; padding: 22px; border: 1px solid var(--stroke); background: linear-gradient(140deg, #131c23, #10171d); }
+.practice-copy h3 { margin: 6px 0 10px; font: 600 23px var(--display); letter-spacing: -.04em; }
+.practice-copy > p { max-width: 390px; color: #929f98; font-size: 11px; line-height: 1.75; }
+.practice-copy label { display: flex; justify-content: space-between; margin: 22px 0 8px; color: #d1dbd3; font: 9px var(--mono); }
+.practice-copy label span { color: #748179; font-size: 8px; }
+.practice-copy select { width: 100%; height: 40px; padding: 0 10px; color: #dce7de; background: #0b1116; border: 1px solid rgba(226,238,221,.13); font: 10px var(--mono); }
+.practice-copy .button { margin-top: 10px; }
+.practice-copy .button:disabled { cursor: wait; }
+.practice-status { min-height: 42px; margin: 11px 0 0; color: #91a097; font: 8px/1.7 var(--mono); overflow-wrap: anywhere; }
+.practice-result { min-width: 0; }
+.practice-canvas-wrap { position: relative; min-height: 240px; border: 1px solid rgba(226,238,221,.1); background: #0b1116; }
+#practice-canvas { display: block; width: 100%; height: 100%; min-height: 240px; }
+.practice-placeholder { position: absolute; inset: 0; display: grid; place-content: center; text-align: center; color: #68766e; font: 9px/2 var(--mono); letter-spacing: .14em; pointer-events: none; }
+.practice-placeholder span { color: #4c5a52; font-size: 7px; }
+.practice-metrics { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; padding-top: 15px; }
+.practice-metrics div { min-width: 0; }
+.practice-metrics span { display: block; margin-bottom: 5px; color: #738078; font: 7px var(--mono); letter-spacing: .08em; }
+.practice-metrics strong { color: #d7dfd7; font: 500 14px var(--display); overflow-wrap: anywhere; }
+.practice-limit { margin: 14px 0 0; color: #77847c; font: 8px/1.7 var(--mono); }
 
 @media (max-width: 900px) {
   .hero { padding-left: 8vw; padding-right: 8vw; gap: 4vw; }
@@ -199,6 +221,10 @@ h1 em, .create-intro h2 em, .how-heading h2 em { color: var(--lime); font-style:
   .section-heading h2 { font-size: 34px; }
   .challenge-list { grid-template-columns: 1fr; }
   .challenge-card { padding: 17px; }
+  .practice-section .section-heading { align-items: start; flex-direction: column; gap: 14px; }
+  .practice-layout { grid-template-columns: 1fr; gap: 18px; padding: 17px; }
+  .practice-metrics { grid-template-columns: 1fr 1fr; }
+  .practice-metrics div:last-child { grid-column: 1 / -1; }
   .create-section { grid-template-columns: 1fr; gap: 28px; }
   .create-card { padding: 18px; }
   .how-section { display: block; }

@@ -23,6 +23,11 @@ const challengeList = document.querySelector("#challenge-list");
 const emptyState = document.querySelector("#empty-state");
 const configState = document.querySelector("#config-state");
 const createFeedback = document.querySelector("#create-feedback");
+const practiceRunButton = document.querySelector("#practice-run-button");
+const practiceSizeInput = document.querySelector("#practice-size");
+const practiceCanvas = document.querySelector("#practice-canvas");
+let practiceWorker;
+let lastPracticeResult;
 
 function showToast(message, kind = "") {
   const toast = document.querySelector("#toast");
@@ -279,6 +284,7 @@ async function refresh() {
   if (!CONTRACT_ID) {
     configState.textContent = "Contract not deployed yet. Set VITE_CONTRACT_ID in web/.env.local after deploying the testnet contract.";
     configState.classList.remove("hidden");
+    emptyState.classList.add("hidden");
     return;
   }
   configState.classList.add("hidden");
@@ -289,19 +295,106 @@ async function refresh() {
     document.querySelector("#metric-count").textContent = count.toString().padStart(2, "0");
     const fromId = Math.max(1, count - 11);
     const challenges = count ? await callView("get_challenges", { from_id: fromId, limit: Math.min(12, count) }) : [];
-    document.querySelector("#metric-open").textContent = challenges.filter((challenge) => challenge.status === "open").length.toString().padStart(2, "0");
+    const openCount = challenges.filter((challenge) => challenge.status === "open").length;
+    document.querySelector("#metric-open").textContent = openCount.toString().padStart(2, "0");
     challengeList.replaceChildren(...challenges.map(renderChallenge).reverse());
-    emptyState.classList.toggle("hidden", challenges.length > 0);
+    emptyState.classList.toggle("hidden", openCount > 0);
     if (!challenges.length) challengeList.replaceChildren();
   } catch (error) {
     challengeList.replaceChildren();
+    emptyState.classList.add("hidden");
+    document.querySelector("#metric-count").textContent = "—";
+    document.querySelector("#metric-open").textContent = "—";
     configState.textContent = `Could not read ${CONTRACT_ID} on testnet: ${error?.message || "RPC request failed."}`;
     configState.classList.remove("hidden");
   }
 }
 
+function drawPracticeRoute(result) {
+  const context = practiceCanvas.getContext("2d");
+  const bounds = practiceCanvas.getBoundingClientRect();
+  if (!context || bounds.width < 1) return;
+  const ratio = window.devicePixelRatio || 1;
+  const width = bounds.width;
+  const height = Math.max(240, bounds.height);
+  practiceCanvas.width = Math.round(width * ratio);
+  practiceCanvas.height = Math.round(height * ratio);
+  context.setTransform(ratio, 0, 0, ratio, 0, 0);
+  context.clearRect(0, 0, width, height);
+
+  const padding = 18;
+  const scale = Math.min((width - padding * 2) / 20_000, (height - padding * 2) / 20_000);
+  const offsetX = (width - 20_000 * scale) / 2;
+  const offsetY = (height - 20_000 * scale) / 2;
+  const xy = (point) => [offsetX + (point.x + 10_000) * scale, offsetY + (10_000 - point.y) * scale];
+  context.beginPath();
+  result.route.forEach((city, index) => {
+    const [x, y] = xy(result.points[city]);
+    if (index === 0) context.moveTo(x, y);
+    else context.lineTo(x, y);
+  });
+  const [firstX, firstY] = xy(result.points[result.route[0]]);
+  context.lineTo(firstX, firstY);
+  context.strokeStyle = "rgba(116, 231, 193, .78)";
+  context.lineWidth = result.points.length > 1_000 ? 0.8 : 1.1;
+  context.stroke();
+
+  context.fillStyle = "#c8ff5e";
+  const radius = result.points.length > 1_000 ? 1.05 : 1.7;
+  for (const point of result.points) {
+    const [x, y] = xy(point);
+    context.beginPath();
+    context.arc(x, y, radius, 0, Math.PI * 2);
+    context.fill();
+  }
+  practiceCanvas.setAttribute("aria-label", `Off-chain route through ${result.points.length} generated cities; candidate score ${result.score.toLocaleString()}.`);
+}
+
+function showPracticeResult(result) {
+  lastPracticeResult = result;
+  document.querySelector("#practice-placeholder").classList.add("hidden");
+  document.querySelector("#practice-score").textContent = result.score.toLocaleString();
+  document.querySelector("#practice-baseline").textContent = result.baselineScore.toLocaleString();
+  document.querySelector("#practice-runtime").textContent = `${result.elapsedMs.toLocaleString()} ms · ${result.startsTested} starts`;
+  document.querySelector("#practice-status").textContent = `Solved ${result.points.length.toLocaleString()} cities locally; ${result.improvementPercent.toFixed(1)}% below the nearest-neighbour baseline. Candidate only — not a proof of optimality and not sent to NEAR.`;
+  drawPracticeRoute(result);
+}
+
+function runPractice() {
+  if (!practiceWorker) {
+    practiceWorker = new Worker(new URL("./practice-worker.js", import.meta.url), { type: "module" });
+    practiceWorker.addEventListener("message", ({ data }) => {
+      practiceRunButton.disabled = false;
+      practiceSizeInput.disabled = false;
+      if (!data?.ok) {
+        document.querySelector("#practice-status").textContent = data?.error || "The practice solver could not finish.";
+        return;
+      }
+      showPracticeResult(data);
+    });
+    practiceWorker.addEventListener("error", (event) => {
+      practiceRunButton.disabled = false;
+      practiceSizeInput.disabled = false;
+      document.querySelector("#practice-status").textContent = event.message || "The local practice worker stopped unexpectedly.";
+      practiceWorker.terminate();
+      practiceWorker = undefined;
+    });
+  }
+  const count = Number(practiceSizeInput.value);
+  practiceRunButton.disabled = true;
+  practiceSizeInput.disabled = true;
+  document.querySelector("#practice-status").textContent = `Generating ${count.toLocaleString()} cities and searching locally…`;
+  practiceWorker.postMessage({ count, seed: 0x51eed + count });
+}
+
 walletButton.addEventListener("click", connectWallet);
 document.querySelector("#refresh-button").addEventListener("click", refresh);
+practiceRunButton.addEventListener("click", runPractice);
+if ("ResizeObserver" in window) {
+  new ResizeObserver(() => {
+    if (lastPracticeResult) drawPracticeRoute(lastPracticeResult);
+  }).observe(practiceCanvas);
+}
 document.querySelector("#create-form").addEventListener("submit", async (event) => {
   event.preventDefault();
   const button = event.currentTarget.querySelector('button[type="submit"]');

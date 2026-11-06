@@ -36,6 +36,17 @@ jobs:
           cache: npm
           cache-dependency-path: web/package-lock.json
       - run: npm ci
+      - run: npm test
       - run: npm run build
         env:
           VITE_CONTRACT_ID: ci-placeholder.testnet
+
+  solver:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Test Python solver
+        run: python -m unittest solver.test_solver -v

@@ -31,9 +31,9 @@
           <div class="proof-line"><span class="proof-dot"></span><span>Score is recomputed by the contract</span><span class="proof-divider">/</span><span>Testnet only</span></div>
         </div>
         <div class="hero-visual" aria-label="A sample route between optimization points">
-          <div class="visual-label visual-label-top">OBJECTIVE / MINIMIZE</div>
+          <div class="visual-label visual-label-top">ILLUSTRATIVE SAMPLE / NOT LIVE</div>
           <div class="route-art">
-            <svg viewBox="0 0 480 340" role="img" aria-label="A closed route connects nine city points">
+            <svg viewBox="0 0 480 340" role="img" aria-label="An illustrative closed route connects ten city points">
               <defs>
                 <linearGradient id="routeGradient" x1="0" x2="1" y1="0" y2="1"><stop offset="0" stop-color="#c8ff5e"/><stop offset="1" stop-color="#74e7c1"/></linearGradient>
               </defs>
@@ -50,9 +50,9 @@
               <g class="route-node"><circle cx="87" cy="260" r="6"/><text x="62" y="285">08</text></g>
               <g class="route-node"><circle cx="51" cy="172" r="6"/><text x="25" y="176">09</text></g>
             </svg>
-            <div class="route-center"><span>BEST</span><strong>1,284</strong><small>ROUTE UNITS</small></div>
+            <div class="route-center"><span>SAMPLE</span><strong>1,284</strong><small>ROUTE UNITS</small></div>
           </div>
-          <div class="visual-label visual-label-bottom"><span>10 NODES</span><span>09 EDGES</span><span>01 WINNER</span></div>
+          <div class="visual-label visual-label-bottom"><span>10 NODES</span><span>10 EDGES</span><span>SAMPLE TOUR</span></div>
           <div class="visual-index">FIG. 01 <span>TOUR / V1</span></div>
         </div>
         <div class="hero-index">01 <span>—</span> TRUSTLESS OPTIMIZATION</div>
@@ -60,23 +60,58 @@
 
       <section class="metric-strip" aria-label="Market summary">
         <div><span class="metric-label">TOTAL BOUNTIES</span><strong id="metric-count">—</strong></div>
-        <div><span class="metric-label">OPEN CHALLENGES</span><strong id="metric-open">—</strong></div>
+        <div><span class="metric-label">OPEN IN LATEST 12</span><strong id="metric-open">—</strong></div>
         <div><span class="metric-label">NETWORK</span><strong class="metric-network">NEAR <span>TESTNET</span></strong></div>
         <div class="metric-note">No trusted scorer.<br />Just a public rule.</div>
       </section>
 
       <section class="section market-section" id="market">
         <div class="section-heading">
-          <div><p class="eyebrow"><span class="eyebrow-line"></span> THE MARKET</p><h2>Live challenges<span class="heading-period">.</span></h2></div>
+          <div><p class="eyebrow"><span class="eyebrow-line"></span> THE MARKET</p><h2>Recent challenges<span class="heading-period">.</span></h2></div>
           <button id="refresh-button" class="quiet-button" type="button">Refresh <span>↻</span></button>
         </div>
         <div id="challenge-list" class="challenge-list" aria-live="polite"></div>
         <div id="empty-state" class="empty-state hidden">
           <span class="empty-mark">↳</span>
-          <p>No challenges yet.</p>
-          <span>Be the first to fund a problem and invite the agents.</span>
+          <p>No funded live challenge in the latest 12.</p>
+          <span>Settled items above are history; there is no bounty to submit to right now.</span>
+          <a class="empty-practice-link" href="#practice">Try the offline practice lab — no wallet or funds needed ↘</a>
         </div>
         <div id="config-state" class="config-state hidden"></div>
+      </section>
+
+      <section class="section practice-section" id="practice">
+        <div class="section-heading">
+          <div><p class="eyebrow"><span class="eyebrow-line"></span> OFF-CHAIN PRACTICE</p><h2>Scale beyond the live contract<span class="heading-period">.</span></h2></div>
+          <span class="practice-badge">LOCAL ONLY · NO WALLET · NO FUNDS</span>
+        </div>
+        <div class="practice-layout">
+          <div class="practice-copy">
+            <h3>Try a larger route.</h3>
+            <p>Generate a repeatable Euclidean TSP instance and solve it in your browser. The bounded multi-start, nearest-neighbour + 2-opt heuristic gives a candidate, not a proof of optimality.</p>
+            <label for="practice-size">Practice instance <span>CITIES</span></label>
+            <select id="practice-size">
+              <option value="100">100 cities</option>
+              <option value="500" selected>500 cities</option>
+              <option value="1000">1,000 cities</option>
+              <option value="2000">2,000 cities</option>
+            </select>
+            <button id="practice-run-button" class="button button-primary button-wide" type="button">Generate &amp; solve locally <span>↗</span></button>
+            <p id="practice-status" class="practice-status" role="status" aria-live="polite">Practice data stays in this tab. No wallet or blockchain write is needed.</p>
+          </div>
+          <div class="practice-result">
+            <div class="practice-canvas-wrap">
+              <canvas id="practice-canvas" aria-label="Local practice route will appear here"></canvas>
+              <div id="practice-placeholder" class="practice-placeholder">PRACTICE ROUTE<br /><span>NOT AN ON-CHAIN BOUNTY</span></div>
+            </div>
+            <div class="practice-metrics">
+              <div><span>LOCAL CANDIDATE</span><strong id="practice-score">—</strong></div>
+              <div><span>NEAREST-NEIGHBOUR BASELINE</span><strong id="practice-baseline">—</strong></div>
+              <div><span>SEARCH</span><strong id="practice-runtime">—</strong></div>
+            </div>
+          </div>
+        </div>
+        <p class="practice-limit">The deployed contract still accepts only 3–40 cities. Practice instances above 40 are off-chain only, cannot be submitted to this contract, and do not create or claim a bounty.</p>
       </section>
 
       <section class="section create-section" id="create">
