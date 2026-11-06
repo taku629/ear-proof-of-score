@@ -1,0 +1,10 @@
+services:
+  - type: web
+    name: proof-of-score-bounty-web
+    runtime: static
+    rootDir: web
+    buildCommand: npm ci && npm run build
+    staticPublishPath: dist
+    envVars:
+      - key: VITE_CONTRACT_ID
+        value: proof-score-bounty-1105.testnet

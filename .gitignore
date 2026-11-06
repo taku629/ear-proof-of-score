@@ -1,0 +1,22 @@
+# Rust / NEAR
+/target/
+**/target/
+*.wasm
+.near-credentials/
+
+# Node
+node_modules/
+web/dist/
+
+# Local environment and secrets
+.env
+.env.*.local
+web/.env.local
+*.pem
+*.key
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/

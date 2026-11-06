@@ -1,0 +1,18 @@
+{
+  "name": "proof-of-score-bounty-web",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite --host 0.0.0.0",
+    "build": "vite build",
+    "preview": "vite preview --host 0.0.0.0"
+  },
+  "dependencies": {
+    "@hot-labs/near-connect": "^0.12.0",
+    "near-api-js": "^7.4.0"
+  },
+  "devDependencies": {
+    "vite": "^7.1.12"
+  }
+}

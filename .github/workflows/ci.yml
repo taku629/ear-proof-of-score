@@ -1,0 +1,41 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  contract:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: 1.97.1
+          targets: wasm32-unknown-unknown
+      - name: Check formatting
+        run: cargo fmt --manifest-path contract/Cargo.toml -- --check
+      - name: Test contract
+        run: cargo test --manifest-path contract/Cargo.toml
+      - name: Build contract WASM
+        run: cargo build --manifest-path contract/Cargo.toml --target wasm32-unknown-unknown --release
+
+  web:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: web
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+      - run: npm ci
+      - run: npm run build
+        env:
+          VITE_CONTRACT_ID: ci-placeholder.testnet
