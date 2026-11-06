@@ -13,7 +13,7 @@ Recommended: **Agent Economy** (`agents`) and **Open Innovation** (`open`). The 
 ## Public links
 
 - Public repository: https://github.com/taku629/ear-proof-of-score
-- Hosted testnet demo: https://taku629.github.io/ear-proof-of-score/ (GitHub Pages deployment in progress)
+- Hosted testnet demo: https://taku629.github.io/ear-proof-of-score/ (live; HTTP 200 and testnet challenge display verified)
 - Public demo post: pending; the human must publish it on X and provide its URL.
 
 ## Current testnet deployment
@@ -54,10 +54,11 @@ Attach the [~49-second demo video](./demo-video.mp4). This post is 270 weighted 
 - [x] Contract deployed and initialized on testnet; valid scoring, best-route replacement, and invalid duplicate-route rejection are verified.
 - [x] Winning payout and no-submission refund are verified; a distinct solver account also received a payout.
 - [x] Frontend production build passed with the live testnet contract configured.
-- [ ] GitHub Pages hosted demo is live and verified.
+- [x] GitHub Pages hosted demo is live and verified; deployment workflow and Rust/Web CI succeeded for commit 7d74afc.
 - [x] Demo video is finished: a ~49-second, 1600×900 read-only tour of actual testnet state and the creation form; it includes no wallet prompt, signing, or new transaction.
 - [ ] Human publishes the X post and supplies its public URL.
 - [ ] Human creates a separate **mainnet** NEAR payout account and supplies only its public address (never a private key or seed phrase).
-- [ ] Human confirms project name, lead name, contact email, team size, track IDs, and description.
+- [x] Human approved the project name, Agent Economy/Open Innovation tracks, description, and reviewed public demo content.
+- [ ] Human confirms lead name, contact email, and team size.
 - [ ] Read the organizer's consent notice verbatim; get explicit consent.
 - [ ] Show the complete exact JSON payload and get an explicit yes before the one-time POST.
