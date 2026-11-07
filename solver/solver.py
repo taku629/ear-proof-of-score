@@ -18,7 +18,7 @@ import time
 import urllib.request
 from typing import Any
 
-DEFAULT_RPC = "https://rpc.testnet.near.org"
+DEFAULT_RPC = "https://test.rpc.fastnear.com"
 MIN_POINTS = 3
 MAX_ONCHAIN_POINTS = 40
 MAX_PRACTICE_POINTS = 2_000

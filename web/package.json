@@ -7,7 +7,7 @@
     "dev": "vite --host 0.0.0.0",
     "build": "vite build",
     "preview": "vite preview --host 0.0.0.0",
-    "test": "node --test src/practice-core.test.js"
+    "test": "node --test src/practice-core.test.js src/connection-lock.test.js src/meteor-origin-fix.test.js"
   },
   "dependencies": {
     "@hot-labs/near-connect": "^0.12.0",

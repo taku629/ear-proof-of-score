@@ -1,13 +1,18 @@
 import { NearConnector } from "@hot-labs/near-connect";
 import { JsonRpcProvider } from "near-api-js";
+import { createSingleFlight } from "./connection-lock.js";
+import { installMeteorExecutorOriginFix } from "./meteor-origin-fix.js";
 import "./style.css";
 
 const CONTRACT_ID = import.meta.env.VITE_CONTRACT_ID?.trim() ?? "";
-const RPC_URL = import.meta.env.VITE_RPC_URL?.trim() || "https://rpc.testnet.near.org";
+const RPC_URL = import.meta.env.VITE_RPC_URL?.trim() || "https://test.rpc.fastnear.com";
 const YOCTO_PER_NEAR = 10n ** 24n;
 const GAS = "150000000000000";
+const BASE_REFRESH_DELAY = 60_000;
+const MAX_REFRESH_DELAY = 300_000;
 
 const provider = new JsonRpcProvider({ url: RPC_URL });
+installMeteorExecutorOriginFix(window);
 const connector = new NearConnector({
   network: "testnet",
   features: { signAndSendTransaction: true },
@@ -16,9 +21,15 @@ const connector = new NearConnector({
 
 let wallet;
 let accountId = "";
+let connectionBusy = false;
+const connectOnce = createSingleFlight();
 let toastTimer;
+let refreshInProgress = false;
+let refreshTimer;
+let refreshDelay = BASE_REFRESH_DELAY;
 
 const walletButton = document.querySelector("#wallet-button");
+const refreshButton = document.querySelector("#refresh-button");
 const challengeList = document.querySelector("#challenge-list");
 const emptyState = document.querySelector("#empty-state");
 const configState = document.querySelector("#config-state");
@@ -86,6 +97,8 @@ async function sendCall(methodName, args, deposit = "0") {
 }
 
 function updateWalletButton() {
+  walletButton.disabled = connectionBusy;
+  walletButton.setAttribute("aria-busy", String(connectionBusy));
   if (accountId) {
     walletButton.innerHTML = `<span class="wallet-indicator"></span>${escapeHtml(shortenAccount(accountId))}<span class="wallet-caret">⌄</span>`;
     walletButton.setAttribute("aria-label", `Disconnect ${accountId}`);
@@ -98,37 +111,41 @@ function updateWalletButton() {
 }
 
 async function connectWallet() {
-  if (accountId && wallet) {
-    await connector.disconnect(wallet);
-    wallet = undefined;
-    accountId = "";
+  return connectOnce(async () => {
+    connectionBusy = true;
     updateWalletButton();
-    showToast("Wallet disconnected.");
-    return;
-  }
-  try {
-    wallet = await connector.connect();
-    const accounts = await wallet.getAccounts();
-    accountId = accounts?.[0]?.accountId ?? "";
-    if (!accountId) throw new Error("No account was returned by the wallet.");
-    updateWalletButton();
-    showToast(`Connected ${shortenAccount(accountId)}.`);
-  } catch (error) {
-    wallet = undefined;
-    accountId = "";
-    updateWalletButton();
-    showToast(error?.message || "Wallet connection was cancelled.", "error");
-  }
+    try {
+      if (accountId && wallet) {
+        await connector.disconnect(wallet);
+        wallet = undefined;
+        accountId = "";
+        showToast("Wallet disconnected.");
+        return;
+      }
+
+      const selectedWallet = await connector.connect();
+      if (wallet !== selectedWallet || !accountId) {
+        const accounts = await selectedWallet.getAccounts();
+        accountId = accounts?.[0]?.accountId ?? "";
+      }
+      wallet = selectedWallet;
+      if (!accountId) throw new Error("No account was returned by the wallet.");
+      showToast(`Connected ${shortenAccount(accountId)}.`);
+    } catch (error) {
+      showToast(error?.message || "Wallet connection was cancelled.", "error");
+    } finally {
+      connectionBusy = false;
+      updateWalletButton();
+    }
+  });
 }
 
-connector.on("wallet:signIn", async (event) => {
-  try {
-    wallet = await connector.wallet();
-    accountId = event.accounts?.[0]?.accountId ?? (await wallet.getAccounts())?.[0]?.accountId ?? "";
-    updateWalletButton();
-  } catch (error) {
-    console.warn("Could not restore connected wallet", error);
-  }
+connector.on("wallet:signIn", (event) => {
+  const signedInAccount = event.accounts?.[0]?.accountId ?? "";
+  if (!event.success || !event.wallet || !signedInAccount) return;
+  wallet = event.wallet;
+  accountId = signedInAccount;
+  updateWalletButton();
 });
 connector.on("wallet:signOut", () => {
   wallet = undefined;
@@ -247,6 +264,7 @@ function renderChallenge(challenge) {
         await sendCall("submit_solution", { challenge_id: challenge.id, route });
         showToast("Route submitted. Score is now computed on-chain.");
         await refresh();
+        scheduleRefresh();
       } catch (error) {
         feedback.textContent = error?.message || "Submission failed.";
         showToast(error?.message || "Submission failed.", "error");
@@ -261,6 +279,7 @@ function renderChallenge(challenge) {
       await sendCall("finalize", { challenge_id: challenge.id });
       showToast("Challenge finalized. The winner can now claim the bounty.");
       await refresh();
+      scheduleRefresh();
     } catch (error) {
       showToast(error?.message || "Finalization failed.", "error");
       event.currentTarget.disabled = false;
@@ -271,7 +290,10 @@ function renderChallenge(challenge) {
       event.currentTarget.disabled = true;
       await sendCall("claim_payout", { challenge_id: challenge.id });
       showToast("Payout requested. Wait for the transfer callback, then refresh.");
-      setTimeout(refresh, 5000);
+      setTimeout(async () => {
+        await refresh();
+        scheduleRefresh();
+      }, 5000);
     } catch (error) {
       showToast(error?.message || "Payout failed.", "error");
       event.currentTarget.disabled = false;
@@ -281,16 +303,19 @@ function renderChallenge(challenge) {
 }
 
 async function refresh() {
-  if (!CONTRACT_ID) {
-    configState.textContent = "Contract not deployed yet. Set VITE_CONTRACT_ID in web/.env.local after deploying the testnet contract.";
-    configState.classList.remove("hidden");
-    emptyState.classList.add("hidden");
-    return;
-  }
-  configState.classList.add("hidden");
-  challengeList.replaceChildren();
-  challengeList.innerHTML = '<div class="loading-row"><span></span> Reading the contract…</div>';
+  if (refreshInProgress) return false;
+  refreshInProgress = true;
+  refreshButton.disabled = true;
   try {
+    if (!CONTRACT_ID) {
+      configState.textContent = "Contract not deployed yet. Set VITE_CONTRACT_ID in web/.env.local after deploying the testnet contract.";
+      configState.classList.remove("hidden");
+      emptyState.classList.add("hidden");
+      return false;
+    }
+    configState.classList.add("hidden");
+    challengeList.replaceChildren();
+    challengeList.innerHTML = '<div class="loading-row"><span></span> Reading the contract…</div>';
     const count = Number(await callView("get_challenge_count"));
     document.querySelector("#metric-count").textContent = count.toString().padStart(2, "0");
     const fromId = Math.max(1, count - 11);
@@ -300,14 +325,34 @@ async function refresh() {
     challengeList.replaceChildren(...challenges.map(renderChallenge).reverse());
     emptyState.classList.toggle("hidden", openCount > 0);
     if (!challenges.length) challengeList.replaceChildren();
+    refreshDelay = BASE_REFRESH_DELAY;
+    return true;
   } catch (error) {
     challengeList.replaceChildren();
     emptyState.classList.add("hidden");
     document.querySelector("#metric-count").textContent = "—";
     document.querySelector("#metric-open").textContent = "—";
-    configState.textContent = `Could not read ${CONTRACT_ID} on testnet: ${error?.message || "RPC request failed."}`;
+    const message = error?.message || "RPC request failed.";
+    refreshDelay = Math.min(MAX_REFRESH_DELAY, Math.max(BASE_REFRESH_DELAY, refreshDelay * 2));
+    if (/\b429\b|too many requests|rate.?limit/i.test(String(message))) {
+      configState.textContent = `The testnet RPC is rate-limiting requests. Retrying in ${Math.round(refreshDelay / 1000)} seconds.`;
+    } else {
+      configState.textContent = `Could not read ${CONTRACT_ID} on testnet: ${message}`;
+    }
     configState.classList.remove("hidden");
+    return false;
+  } finally {
+    refreshInProgress = false;
+    refreshButton.disabled = false;
   }
+}
+
+function scheduleRefresh() {
+  clearTimeout(refreshTimer);
+  refreshTimer = setTimeout(async () => {
+    await refresh();
+    scheduleRefresh();
+  }, refreshDelay);
 }
 
 function drawPracticeRoute(result) {
@@ -388,7 +433,10 @@ function runPractice() {
 }
 
 walletButton.addEventListener("click", connectWallet);
-document.querySelector("#refresh-button").addEventListener("click", refresh);
+refreshButton.addEventListener("click", async () => {
+  await refresh();
+  scheduleRefresh();
+});
 practiceRunButton.addEventListener("click", runPractice);
 if ("ResizeObserver" in window) {
   new ResizeObserver(() => {
@@ -412,6 +460,7 @@ document.querySelector("#create-form").addEventListener("submit", async (event) 
     createFeedback.textContent = "Bounty created. Refreshing the market…";
     showToast("Bounty created and funds locked in the contract.");
     await refresh();
+    scheduleRefresh();
   } catch (error) {
     createFeedback.textContent = error?.message || "Could not create bounty.";
     showToast(error?.message || "Could not create bounty.", "error");
@@ -422,4 +471,4 @@ document.querySelector("#create-form").addEventListener("submit", async (event) 
 
 await restoreWallet();
 await refresh();
-setInterval(refresh, 30_000);
+scheduleRefresh();

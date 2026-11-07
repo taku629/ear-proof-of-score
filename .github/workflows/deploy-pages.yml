@@ -36,7 +36,7 @@ jobs:
         working-directory: web
         env:
           VITE_CONTRACT_ID: proof-score-bounty-1105.testnet
-          VITE_RPC_URL: https://rpc.testnet.near.org
+          VITE_RPC_URL: https://test.rpc.fastnear.com
       - uses: actions/upload-pages-artifact@v3
         with:
           path: web/dist

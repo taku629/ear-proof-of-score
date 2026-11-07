@@ -1,7 +1,7 @@
 import random
 import unittest
 
-from solver.solver import MAX_ONCHAIN_POINTS, MAX_PRACTICE_POINTS, route_score, solve
+from solver.solver import DEFAULT_RPC, MAX_ONCHAIN_POINTS, MAX_PRACTICE_POINTS, route_score, solve
 
 
 def points(count: int, seed: int = 2026) -> list[dict[str, int]]:
@@ -10,6 +10,9 @@ def points(count: int, seed: int = 2026) -> list[dict[str, int]]:
 
 
 class SolverTests(unittest.TestCase):
+    def test_default_rpc_uses_fastnear_testnet(self) -> None:
+        self.assertEqual(DEFAULT_RPC, "https://test.rpc.fastnear.com")
+
     def test_score_matches_contract_integer_floor_closed_tour(self) -> None:
         example = [{"x": 0, "y": 0}, {"x": 3, "y": 4}, {"x": 6, "y": 0}]
         self.assertEqual(route_score(example, [0, 1, 2]), 16)

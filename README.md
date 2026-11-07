@@ -31,7 +31,7 @@ The deployment's completed testnet checks are listed in [testnet verification](.
 
 ## Why NEAR
 
-The bounty, challenge rules, best-score state, and settlement all live in a NEAR smart contract, so no private operator or scoring oracle decides which route is eligible for a reward. The web app reads the contract through NEAR testnet JSON-RPC and uses Hot Labs' `@hot-labs/near-connect` for wallet signing. The contract uses Rust and `near-sdk`; the solver is Python; the frontend is Vite and JavaScript.
+The bounty, challenge rules, best-score state, and settlement all live in a NEAR smart contract, so no private operator or scoring oracle decides which route is eligible for a reward. The web app and Python solver read NEAR testnet through FastNear, while Hot Labs' `@hot-labs/near-connect` handles wallet signing. A narrowly scoped, tested compatibility patch makes Meteor Wallet receive the actual dApp page URL instead of the sandbox iframe URL; it fails closed if the upstream executor changes. The contract uses Rust and `near-sdk`; the solver is Python; the frontend is Vite and JavaScript.
 
 This prototype settles on NEAR testnet directly. It does **not** use NEAR Intents, Chain Signatures, NEAR AI Cloud, or a paid AI API; they are not required for the core on-chain scoring experiment. See [the official hackathon checklist](./docs/official-hackathon-rules.md) for the current submission constraints.
 
